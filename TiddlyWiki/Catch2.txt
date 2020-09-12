@@ -1,0 +1,35 @@
+[[Catch2|https://github.com/catchorg/Catch2]]
+
+catch.hpp - single header
+
+Commands:
+
+>REQUIRE
+>TEST
+>CATCH_REGISTER_ENUM
+>SECTION - can be nested. code from higher level will be executed before each test. That works like a text fixture
+>SCENARIO, GIVEN, WHEN, THEN, AND_THEN  - write BDD styled tests
+>GENERATE - defines repetitions/loops 2 GENERATE commands in one area produce superposition of 
+
+How to assure that main() function exists
+
+>&#35;define CATCH_CONFIG_MAIN
+>&#35;include "catch.hpp"
+	
+Can add CATCH_ prefix to all commands
+
+>&#35;define CATCH_CONFIG_PREFIX_ALL
+
+
+CMD parameters
+
+> -rng-seed { time | &lt;number> }
+> -h		- print help
+> -s		- output even successful tests
+>-a		- run all tegs, including hidden ones
+>-l		- list tests, except for hidden
+>-l "[.]" - list hidden tags
+
+Tags
+
+If tag starts with . (''dot''), it will not be considered in default run. Example: [.property]
