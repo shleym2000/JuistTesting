@@ -1,0 +1,265 @@
+[[Accelerated TDD: For More Productive C++|https://github.com/philsquared/a-tdd]]
+
+Meeting ID: 958 4242 9755
+Passcode: 761816
+
+Mr. Phil Nash
+Author of Catch - a C++ test framework, and other libraries and apps. 
+Developer advocate at //~JetBrains//
+
+phil_nash -twitter
+
+Breaks every 60 - 90 minutes
+
+[[Repository for TDD Classes|http://atdd.dev]]
+
+"""
+&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;
+&#42;&#42;&#42;         2020-09-09
+&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;
+"""
+
+With TDD many see initial drop in activity. Important to pass that stage with consistency and experience.
+
+TDD - Test Driven Design or Test Driven Development
+
+Test comes first
+
+There are few cases when TDD is not a good approach. He will elaborate later in the course.
+
+!!! NIST study in 2002:
+
+Improvements in testing could reduce cost of bug by about 1/3
+
+TDD cycle:
+
+# START ==>
+# ''Write failing test'' ==>
+# Write code to just make this test pass ==>
+# refactor code (might not be needed every time, but should be done in most cycles) ==>
+# Decide : Are we done (all requirements are fulfilled)? ==>
+#* repeat "''Write failing test''" step or
+#* EXIT
+
+Possible problem - slow speed of compiling
+
+Mindset: hard to switch between architectural level mindset to mindset of hacker (just enough code) and then to mindset of developer (refactoring)
+
+Initially it is important to always practice TDD daily or at least weekly. Preferably, at work.
+
+If we can get away with returning some constant, then we should return constant. Let future failed test tells us that we should become more clever than that.
+The next level of complexity is to return variable, then computations.
+
+Start with simplest tests and simplest code to satisfy it. 
+
+Refactoring is not always needed and can be skipped, but we should always ask ourselves if we should do it at this cycle. Do not put it off for too long.
+
+Code Reuse is a misguided concept. We are not reusing code, especially with Agile. We need code, which is doing job at hand and will be easy to change in the future.
+
+Cohesion: things which belong together should go together for being changed together if needed.
+
+We should change behavior of the system, not an implementation. Implementation can change without need to rewrite test code. Besides, to test implementation we would need to expose private details of our classes and this would be very wrong on so many levels.
+
+Testing framework:
+
+# &#35;include 	&lt;cassert>
+#*Simple to include, familiar syntax, but not too user friendly output when there is an error.
+# ~CppUnit (6%)
+#*not useful for C++
+# Boost.Test (6%)
+# Google Test (31%)
+# [[Catch & Catch 2 (14%)|https://github.com/catchorg/Catch2/blob/master/docs/tutorial.md]]
+# doctest (3%)
+#*Follows Catch framework. Also fast compiling and makes it convenient to write tests right in the file where production code is.
+# Boost.Experimental.UT
+#*oriented to C++ 20. Does not use macroses. Not ready for production yet.
+
+
+!! GOOD TEST
+
+Unit test should be reproducible and deterministic.
+Name of the TEST_CASE should say what is getting tested
+SECTION name should tell the expected result
+Phill calls starting area of the TEST_CASE - an Arrange" area
+Each section has "Act" and "ASSERT" areas
+
+"Single Logical Assert" rule for section. = Perform all actions and then do all asserts. Try not to mix asserts and actions.
+
+Use only public interface. Do not test or even access private methods.
+Possible need in tests for legacy code or to test non-functioning requirements.
+In such case we can do following:
+
+# friend class //~TestAccess//;
+# extern name_not_in_header
+# #define public private
+
+In any case, express in the name that this pesky test for internal implementation. It would allow you to know that this test is not so important or must be changed if implementation had changed
+
+Have low Cyclomatic Complexity - metric used to indicate the complexity of a program.
+
+Following increases Cyclomatic Complexity: if, switch, for, while, ?:
+REQUIRE command avoid using "if" to see if you have to end test
+Usage of "for" replaced with property based taxes for range of value.
+
+If "if" and/or "for" are still needed in test, it means that we are doing something wrong - need to step back and rethink test case.
+
+Good Test should Always Have Reason.
+
+It benefits to commit after writing code to pass a test and then again after refactoring.
+We should be able to always be able to roll back to functioning state.
+
+Design principals apply to "Refactor" phase of the TDD cycle.
+
+Time to check requirements is at the "Are We Done" phase of the TDD.
+
+SOLID principle
+
+*Single Responsibility - Separation of Concerns
+*Open/Closed
+*Liskov Substitution
+*Interface Segregation
+*Dependency Inversion - Program to an Interface
+
+
+FLUID principle - more useful
+
+*Functional
+*Loose
+*Unit Testable
+*Introspective
+*&#96;Dempotent
+
+"""
+&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;
+&#42;&#42;&#42;         2020-09-10
+&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;&#42;
+"""
+
+Cognitive Limit
+7 +/- 2 - limit of items to keep in working memory at once
+
+Fractal TDD concept - apply TDD to test and develop classes, components, system, integration tests and acceptance tests
+
+Do  not be afraid to delete tests if they served their purpose or were not ever needed. Example: tests for implementation.
+
+Book: //Refactoring, Improving the design of Existing Code// by Martin Fowler
+
+Exercise with Mathew and Lukas
+
+!! Property Tests
+Property Based Testing Framework - useful. Catch2 can not do it yet, because it does not have "shrinking" feature.
+
+Example tests checks few specific special cases.
+
+Property tests try large number of checks to see if property or feature works under battery of inputs
+
+''~RapidCheck'' testing system is Property Testing network
+
+Cars have breaks to allow us to go faster.
+
+From Michael Feathers:
+It is not a Unit Test if
+
+* it talks to database
+* communicates across network
+* touches filesystem
+* can not run concurrently with other unit tests
+* requires changes to environment, for example, to configuration
+
+Tests violating those rules can be valid, but they should not be included into default run of unit tests. They are special.
+Those are more like Integration Tests. They integrate your modules with external players like DB, Filesystem, Network
+
+''Fuzz Testing - combined with using sanitizers (ASan, TSan, MSan, UBSan) can improve development by the order of magnitude.''
+
+Mutation Testing - idea is to test the test if test is written incorrectly. Let make Test test Code and Code test Test. There are special tools, which try to "mutate" code and to see if Test would spot that code is broken.
+
+"""
+BDD - Behavior Driven Development. Effort to re-frame TDD to make its concepts easy to understand. TDD validates behavior of the code, but TDD has "Test" in the name. It emphasizes on tests while there are other than tests ways to validate code's behavior.
+Its concepts: communicate with domain experts/users in the language of the domain.
+It sports User Story : Title, Clarification, Acceptance Criteria in {Given/Arrange, When/Act, Then/Assert) form
+"""
+
+!!! Making Compiling Faster
+
+*Include only what you use.
+*Minimize dependencies by using Forward declarations and *pointers/"pimpl"
+*Use Modules (C++20)
+*Template implementations in separate .inl filesystem, extern templates
+*Prefer constexpr, variadic templates and concepts (C++20)
+
+Advise on style given during exercise
+
+The best test is the test you do not have to write
+Immutable/const properties populated in constructor are preferred. This way we should not test changing them during the lifetime or having wrong setup to begin with.
+
+Mocking - one of the 3 Test Doubles techniques
+
+3 types of Test Doubles : Mocks/Fakes/Stubs
+
+*Stubs - substitute real class and returns some static result at most
+*Fakes - does some work in a short-cut way. It lso can collect test specific information
+*Mocks - most complexity. In addition to Fakes it allows to set expectation 
+
+* [[Trompeloeil - mocking library - single header library|https://github.com/rollbear/trompeloeil]]
+*google mock - another one
+*~HippoMocks
+
+In most cases mocking frameworks could be too complicated and it is easier to write simple mocks to precise needs
+If you mock everything around one class, you are missing on testing how this class interacts with other classes. 
+
+''My thoughts of what should be ready to be mocked '':
+
+*DB access,
+*User input,
+*External Systems,
+*Randomizers,
+*Time
+
+!! Legacy Code
+"""
+Legacy Code - "code without tests".
+	Book: Working Effectively with Legacy Code by Michael Feathers
+"""	
+!! Ways to deal with it:
+	
+* Seams - replace libraries with Mocking versions for linker. Replace includes with your alternatives or make your versions called by strategic MACROs. It is a temporary solution. Seams have to be removed at the end.
+* Sprout Method - rewrite small part of code and then continue to expand new code coverage
+* Dealing With Dependencies - Minimize includes, linked libraries, cross calls, etc.
+* Characterization Tests - tests not to validate, but to discover what is code actually doing
+* Automated Refactoring - this one dangerous. Can change too much and make new code unusable with no clear way to step back other than roll back all changes
+* Lean on compiler - Catches many problems when you changed something
+
+[Phil] : Conquer from Without
+
+
+[[Approval Tests|https://github.com/approvals/ApprovalTests.cpp/master]]
+
+[[Mikado Method|https://livebook.manning.com/book/the-mikado-method/chapter-1/]]
+
+Trick to replace global instances is to have Guard&lt;> class replacing original global instance with Mock ones remembering the original version internally and on destructor it will replace global instance back.
+
+Singletons are bad! If it exists, Mock it with the help of Guard&lt;>
+
+!! BUILDING HABITS
+
+*Try to set time to do TDD daily or at least weekly.
+*Pairing - could be useful. Keep each other in line of following TDD
+
+!! Web Links from the course or inspired by course:
+
+* [[CppCon Academy 2020 - CppCon|https://cppcon.org/2020-classes/]]
+* [[Phil Nash CppCon|https://cppcon.org/author/phil/"]]
+* [[Accelerated TDD class - Zoom|https://zoom.us/j/95842429755?pwd=Qi9uZDZhSHNvM05iRk50bWZhVVZxQT09#success]]
+* [[Phil Nash (@phil_nash) / Twitter|https://twitter.com/phil_nash?lang=en]]
+* [[Code Repo|https://atdd.dev/]]
+* [[Catch2/tutorial.md|https://github.com/catchorg/Catch2/blob/master/docs/tutorial.md]]
+* [[Refactoring|https://refactoring.com/]]
+* [[InformIT: The Trusted Technology Source for IT Pros and Developers|https://www.informit.com/]]
+* [[Accelerated TDD, breakout rooms | Remo Conference|https://live.remo.co/e/accelerated-tdd-breakout-rooms/register]]
+* [[The beginner&#39;s guide to BDD (behaviour-driven development)|https://inviqa.com/blog/bdd-guide]]
+* [[CppCon: Who Are We, Online Whiteboard for Visual Collaboration|https://miro.com/app/board/o9J_klrWNLI=]]
+* [[Using Trompeloeil - a mocking framework for modern C++ - Speaker Deck|https://speakerdeck.com/rollbear/using-trompeloeil-a-mocking-framework-for-modern-c-plus-plus]]
+* [[rollbear/trompeloeil: Header only C++14 mocking framework|https://github.com/rollbear/trompeloeil]]
+* [[About this Book - Re-Engineering Legacy Software|https://livebook.manning.com/book/re-engineering-legacy-software/about-this-book]]
+* [[The Mikado Method|https://livebook.manning.com/book/the-mikado-method/chapter-1/]]
+* [[google/googletest: Googletest - Google Testing and Mocking Framework|https://github.com/google/googletest]]
