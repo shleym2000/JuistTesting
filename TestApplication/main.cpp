@@ -7,7 +7,15 @@
 #include <algorithm>
 #include <cstring>
 
+
+
 using namespace std;
+
+template <typename T>
+void printHelper()
+{
+    std::cout << std::endl << std::endl << "Type: " << typeid(T).name() << std::endl;
+}
 
 /////////////////////////////////////////////////////
 // Task 1: Water fills the pool
@@ -265,8 +273,6 @@ void test1()
 
 #include <tuple>
 
-template <typename T> void printHelper() { std::cout << std::endl << std::endl << "Type: " << typeid(T).name() << std::endl; }
-
 template <int NUM, typename T, typename... U>
 struct Rotation
 {
@@ -288,18 +294,77 @@ struct Reverse<std::tuple<T, U...>>
     using Type = decltype(std::tuple_cat(std::declval<typename Reverse<std::tuple<U...>>::Type>(), std::declval<std::tuple<T>>()));
 };
 
+
 void test2()
 {
     using Tuple = std::tuple<int, bool, double>;
     std::tuple<int, bool, double> var(1, true, 2);
     
-    printHelper< Reverse<std::tuple<int, bool, double>>::Type>();
+    printHelper<Reverse<std::tuple<int, bool, double>>::Type>();
 
     std::cout << std::endl << std::endl <<
         "Test2 result, which should be TRUE, is " << 
         (std::is_same_v<typename Reverse<std::tuple<int, bool, double>>::Type, std::tuple<double, bool, int>> ? "TRUE" : "FALSE") <<
         std::endl;
 }
+
+/////////////////////////////////////////////////////
+// Task 3: Product of multiple Vectors
+/////////////////////////////////////////////////////
+//
+// Each parameter should be the multiplication of the same dimention's integer parameter
+// 
+// zip<Vector<1, 3, 5>, Vector<2, 3, 2>, Vector<4, 2, 3>>::type ====>
+//   Vector<1*2*4, 3*3*2, 5*2*3> ====>
+//   Vector<8, 18, 30>
+//
+
+#include <type_traits>
+
+template <int... T>
+class Vector {};
+
+template <typename... T>
+struct multiply;
+
+
+template <int... lhs, int... rhs>
+struct multiply<Vector<lhs...>, Vector<rhs...>>
+{
+    using type = Vector<(lhs* rhs)...>;
+};
+
+template <typename... T>
+struct zip;
+
+template <typename T>
+struct zip<T>
+{
+    using type = T;
+};
+
+template <typename T1, typename T2, typename... U>
+struct zip<T1, T2, U...>
+{
+    using type = typename zip<typename multiply<T1, T2>::type, U...>::type;
+};
+
+
+void test3()
+{
+
+    //zip<Vector<1, 2, 5>, Vector<1, 3, 4>>::type;
+
+    printHelper<typename zip<Vector<1, 3, 5>, Vector<2, 3, 2>>::type>();
+    printHelper<typename zip<Vector<1, 3, 5>, Vector<2, 3, 2>, Vector<4, 2, 3>>::type>();
+
+    std::cout << std::endl << std::endl <<
+        "Test3 result, which should be TRUE, is " <<
+        (std::is_same_v<typename zip<Vector<1, 3, 5>, Vector<2, 3, 2>>::type, Vector<2, 9, 10>> ? "TRUE" : "FALSE") << ", " <<
+        (std::is_same_v<typename zip<Vector<1, 3, 5>, Vector<2, 3, 2>, Vector<4, 2, 3>>::type, Vector<8, 18, 30>> ? "TRUE" : "FALSE") << std::endl <<
+        std::endl;
+}
+
 // ========================================
 
 // This main() function here is for unit testing purpose
@@ -309,6 +374,8 @@ int main(int argc, char* argv[])
     test1();
 
     test2();
+
+    test3();
 
 	return 0;
 }
