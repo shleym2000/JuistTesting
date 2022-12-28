@@ -17,9 +17,9 @@ void printHelper()
     std::cout << std::endl << std::endl << "Type: " << typeid(T).name() << std::endl;
 }
 
-/////////////////////////////////////////////////////
-// Task 1: Water fills the pool
-/////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
+// Task 1: Water fills the terrain and getting trapped
+////////////////////////////////////////////////////////
 class Terrain {
 private:
     using Provisionals = vector<unsigned>;
@@ -158,25 +158,11 @@ bool trappedWater(unsigned short i, unsigned short j, const vector<vector<int>>&
             {
                 terra.addProvisionalBound(i, j);
                 int tryWater(0);
-#if 0
-                const bool r1 = trappedWater(i - 1, j, heightMap, level, terra, tryWater);
-                const bool r2 = trappedWater(i, j - 1, heightMap, level, terra, tryWater);
-                if (r1 && r2 &&
-                    trappedWater(i + 1, j, heightMap, level, terra, tryWater) &&
-                    trappedWater(i, j + 1, heightMap, level, terra, tryWater))
-#elif 0
-                if ((terra.status(i - 1, j) != Terrain::eSpill) &&
-                    (terra.status(i, j - 1) != Terrain::eSpill) &&
-                    trappedWater(i - 1, j, heightMap, level, terra, tryWater) &&
-                    trappedWater(i, j - 1, heightMap, level, terra, tryWater) &&
-                    trappedWater(i + 1, j, heightMap, level, terra, tryWater) &&
-                    trappedWater(i, j + 1, heightMap, level, terra, tryWater))
-#else
+
                 if (trappedWater(i - 1, j, heightMap, level, terra, tryWater) &&
                     trappedWater(i, j - 1, heightMap, level, terra, tryWater) &&
                     trappedWater(i + 1, j, heightMap, level, terra, tryWater) &&
                     trappedWater(i, j + 1, heightMap, level, terra, tryWater))
-#endif
                 {
                     subWater += tryWater + depth;
                     return true;
