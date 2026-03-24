@@ -7,7 +7,8 @@
 #include <algorithm>
 #include <cstring>
 
-
+#include <cassert>
+#include <mutex>
 
 using namespace std;
 
@@ -353,10 +354,54 @@ void test3()
 
 // ========================================
 
+static_assert(true, "C++17 or higher is required to compile this code.");
+
+template<bool>  struct CAssert;
+template<>      struct CAssert<true> {};
+
+class NoLocking
+{
+public:
+    class LockGuard
+    {
+        public:
+        LockGuard(NoLocking&) {}
+    };
+
+    NoLocking& get_lock() { return *this; }
+};
+
+class MutexLocking
+{
+public:
+    class LockGuard
+    {
+    public:
+        LockGuard(MutexLocking& parent) : _lock(parent._mutex) {}
+    private:
+        std::unique_lock<std::mutex> _lock;
+    };
+    MutexLocking& get_lock() { return *this; }
+private:
+    std::mutex _mutex;
+};
+
+template<typename T, class LockingPolicy = NoLocking>
+class ManagedList : public std::list<T>, public LockingPolicy
+{
+public:
+    void safe_push_back(const T& value)
+    {
+        typename LockingPolicy::LockGuard guard(this->get_lock());
+        this->push_back(value);
+    }
+};
+
+// ========================================
+
 // This main() function here is for unit testing purpose
 int main(int argc, char* argv[])
 {
-
     test1();
 
     test2();
