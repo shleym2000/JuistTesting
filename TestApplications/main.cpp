@@ -340,7 +340,7 @@ void test3()
     printHelper<typename zip<Vector<1, 3, 5>, Vector<2, 3, 2>, Vector<4, 2, 3>>::type>();
 
     std::cout << std::endl << std::endl <<
-        "Test 3 result, which should be TRUE, is " <<
+        "Test 3 results, which should be TRUE, are " <<
         (std::is_same_v<typename zip<Vector<1, 3, 5>, Vector<2, 3, 2>>::type, Vector<2, 9, 10>> ? "TRUE" : "FALSE") << ", " <<
         (std::is_same_v<typename zip<Vector<1, 3, 5>, Vector<2, 3, 2>, Vector<4, 2, 3>>::type, Vector<8, 18, 30>> ? "TRUE" : "FALSE") << std::endl <<
         std::endl;
@@ -599,6 +599,9 @@ public:
 
     MessageDispatcher() : _thread([this]() { run(); }) {
 
+        while (_status != Status::STARTING) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
     }
     MessageDispatcher(const MessageDispatcher&) = delete;
     MessageDispatcher(MessageDispatcher&&) = delete;
@@ -619,8 +622,16 @@ public:
     }
 
     void publish(const Message &msg) {
+        Status status;
+
+        if (_queue.size() > _queueMaxSize) {
+            std::cout << "Queue is too long, dropping message: " << msg << std::endl;
+            return;
+        }
+
         std::lock_guard lck(_queueMutex);
-        if (_status != Status::EXITING && _status != Status::EXITED) {
+        //std::cout << "__LAS__ Publishing message: " << msg << std::endl;
+        if ((status = _status) != Status::EXITING && status != Status::EXITED) {
             _queue.emplace(msg);
         }
     }
@@ -632,33 +643,37 @@ public:
     }
 
     void start() {
+        Status status;
         std::lock_guard lck(_threadMutex);
-        if (_status == Status::STARTING || _status == Status::STARTED || _status == Status::RUNNING) {
+        if ((status = _status) != Status::EXITING && status != Status::EXITED) {
             _status = Status::RUNNING;
         }        
     }
 
     void stop() {
-
+        Status status;
         std::lock_guard lck(_threadMutex);
-        if (_status == Status::STARTING || _status == Status::STARTED || _status == Status::RUNNING) {
+        if ((status = _status) != Status::EXITING && status != Status::EXITED) {
             _status = Status::STOPPING;
 
-            while (_status != Status::STOPPED || !_queue.empty()) {
+            while (_status != Status::STOPPING || !_queue.empty()) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
         }
     }
+
 private:
+
+    enum class Status { STARTING, RUNNING, STOPPING, STOPPED, EXITING, EXITED };
 
     void run() {
 
+        Status status;
         Message msg;
 
         while (_status != Status::EXITING) {
-            while (_status != Status::STOPPING && _status != Status::STOPPED && _status != Status::EXITING) {
-                _status = Status::RUNNING;
-
+            
+            while ((status = _status) != Status::STOPPING && status != Status::STOPPED && status != Status::EXITING) {
                 while (_status == Status::RUNNING || !_queue.empty()) {
                     if (!_queue.empty()) {
                         {
@@ -676,21 +691,27 @@ private:
                             }                            
                         }
                     }
+
+                    std::this_thread::yield();
                 }
 
-                _status = Status::STOPPED;
+                if (status == Status::STOPPING) {
+                    _status = Status::STOPPED;
+                }
             }
         }
 
         _status = Status::EXITED;
-
     }
 
-    enum class Status {STARTING, STARTED, RUNNING, STOPPING, STOPPED, EXITING, EXITED};
-    std::atomic<Status>                            _status{ Status::EXITED };
+    std::atomic<Status>                            _status{ Status::STARTING };
     std::mutex                                     _threadMutex;
     std::list<std::function<void(const Message&)>> _handlers;
     std::queue<Message>                            _queue;
+    size_t                                         _queueMaxSize{ 1000 };   
+    // condition_variable is useless in this particular implementation,
+    // because we are not waiting for the queue to be non-empty or for the status to change
+    //std::condition_variable                        _queueCondition;
     std::mutex                                     _queueMutex;
     std::thread                                    _thread;
 };
@@ -700,14 +721,15 @@ void test5()
     std::cout << std::endl << "Test 5:" << std::endl << std::endl;
 
     {
+        std::cout << std::endl << "Experiment 10: " << std::endl;
         MessageDispatcher dispatcher;
 
         dispatcher.subscribe([](const auto& msg) {
-            std::cout << "Handler1: " << msg << std::endl;
+            std::cout << "Handler11: " << msg << std::endl;
             });
 
         dispatcher.subscribe([](const auto& msg) {
-            std::cout << "Handler2: " << msg << std::endl;
+            std::cout << "Handler12: " << msg << std::endl;
             });
 
         dispatcher.start();
@@ -719,17 +741,71 @@ void test5()
         producer.join();
 
         dispatcher.stop();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     {
+        std::cout << std::endl << "Experiment 20: " << std::endl;
         MessageDispatcher dispatcher;
 
         dispatcher.subscribe([](const auto& msg) {
-            std::cout << "Handler11: " << msg << std::endl;
+            std::cout << "Handler21: " << msg << std::endl;
             });
 
         dispatcher.subscribe([](const auto& msg) {
-            std::cout << "Handler12: " << msg << std::endl;
+            std::cout << "Handler22: " << msg << std::endl;
+            });
+
+        dispatcher.start();
+
+        std::thread producer([&] {
+            dispatcher.publish("hello 2");
+            });
+
+        producer.join();
+
+        dispatcher.stop();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        dispatcher.start();
+
+        producer = std::thread([&] {
+        dispatcher.publish("hello 2 again");
+            });
+
+        producer.join();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    {
+        std::cout << std::endl << "Experiment 30: " << std::endl;
+        MessageDispatcher dispatcher;
+
+        dispatcher.subscribe([](const auto& msg) {
+                static int cnt = 0;
+                static std::string match("hello...");
+                match[6] = '0' + cnt / 10;
+                match[7] = '0' + cnt % 10;
+                if (++cnt >= 100) {
+                    std::cout << "Handler31 captured " << cnt << " messages." << std::endl;
+                }
+                if (msg != match) {
+                    std::cout << "Handler31: " << msg << " does not match " << match << std::endl;
+                }
+            });
+
+        dispatcher.subscribe([](const auto& msg) {
+                static int cnt = 0;
+                static std::string match("hello...");
+                match[6] = '0' + cnt / 10;
+                match[7] = '0' + cnt % 10;
+                if (++cnt >= 100) {
+                    std::cout << "Handler32 captured " << cnt << " messages." << std::endl;
+                }
+                if (msg != match) {
+                    std::cout << "Handler32: " << msg << " does not match " << match << std::endl;
+                }
             });
 
         dispatcher.start();
@@ -746,7 +822,10 @@ void test5()
         producer.join();
 
         dispatcher.stop();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+
 }
 // ========================================
 
